@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Midnight Heist</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #0c0a08; height: 100%; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #e8ddc4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    user-select: none;
+  }
+  body.alarm-warn { animation: warnpulse 0.8s infinite; }
+  @keyframes warnpulse {
+    0%, 100% { box-shadow: inset 0 0 0 0 rgba(255,40,40,0); }
+    50% { box-shadow: inset 0 0 60px 8px rgba(255,40,40,0.45); }
+  }
+  #hud {
+    width: 1280px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    background: #171208;
+    border-bottom: 2px solid #c8a24a;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    flex: none;
+  }
+  #hud .brand { color: #c8a24a; font-weight: bold; font-size: 17px; letter-spacing: 0.12em; }
+  #timer { font-size: 20px; font-weight: bold; color: #fff; min-width: 64px; text-align: center; }
+  #loot { color: #e8c34a; min-width: 150px; }
+  .alarm-wrap { display: flex; align-items: center; gap: 8px; flex: 1; }
+  #alarm-label { min-width: 92px; color: #f0b0a0; }
+  #alarm-bar { flex: 1; height: 14px; background: #2a2016; border: 1px solid #6b563e; border-radius: 7px; overflow: hidden; }
+  #alarm-fill { height: 100%; width: 0%; background: #7fae5a; transition: width 0.15s linear; }
+  #alarm-fill.warm { background: #e8a34a; }
+  #alarm-fill.hot { background: #e83838; }
+  #tools { color: #9fc4d4; min-width: 210px; text-align: right; }
+  #objective { color: #b9a888; font-style: italic; }
+  #stage { position: relative; width: 1280px; height: 664px; flex: none; }
+  #game { display: block; width: 1280px; height: 664px; cursor: crosshair; }
+  #message {
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    background: rgba(12, 10, 8, 0.85);
+    border: 1px solid #c8a24a;
+    color: #ffe9a8;
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #message:empty { display: none; }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: rgba(8, 6, 4, 0.82);
+    text-align: center;
+    padding: 40px;
+    z-index: 5;
+  }
+  #overlay.hidden { display: none; }
+  #overlay-title { font-size: 52px; letter-spacing: 0.18em; color: #c8a24a; text-shadow: 0 0 24px rgba(200,162,74,0.5); }
+  #overlay-text { font-size: 18px; line-height: 1.6; color: #e8ddc4; max-width: 760px; }
+  #overlay-btn {
+    font-family: Georgia, serif;
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    color: #171208;
+    background: #c8a24a;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 34px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #overlay-btn:hover { background: #e8c34a; }
+</style>
+</head>
+<body>
+  <div id="hud">
+    <span class="brand">MIDNIGHT HEIST</span>
+    <span id="timer">03:00</span>
+    <span id="loot">LOOT 0/4 — $0</span>
+    <span class="alarm-wrap">
+      <span id="alarm-label">ALARM 0%</span>
+      <span id="alarm-bar"><span id="alarm-fill"></span></span>
+    </span>
+    <span id="tools">Coins 3 · Smoke 2 · EMP 1</span>
+    <span id="objective">Steal 3/4, then the van</span>
+  </div>
+  <div id="stage">
+    <canvas id="game" width="1280" height="664"></canvas>
+    <div id="message"></div>
+    <div id="overlay">
+      <div id="overlay-title">MIDNIGHT HEIST</div>
+      <div id="overlay-text"></div>
+      <button id="overlay-btn">Start the heist</button>
+    </div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
