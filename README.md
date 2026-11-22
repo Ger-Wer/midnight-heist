@@ -1,49 +1,29 @@
-![Midnight Heist — best heist game](https://img.shields.io/badge/make.fun-bounty-7c3aed)
-![Rank](https://img.shields.io/badge/make.fun-rank-pending-blue)
-![Reward](https://img.shields.io/badge/make.fun-reward-%2450-green)
+# midnight-heist
 
-# Midnight Heist
+[![make.fun · best-heist-game-20261122-0559](https://make.fun/badge/best-heist-game-20261122-0559.svg)](https://make.fun/bounty/best-heist-game-20261122-0559?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
+[![rank](https://make.fun/badge/best-heist-game-20261122-0559/Ger-Wer/midnight-heist/rank.svg)](https://make.fun/bounty/best-heist-game-20261122-0559/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
+[![reward](https://make.fun/badge/best-heist-game-20261122-0559/Ger-Wer/midnight-heist/reward.svg)](https://make.fun/bounty/best-heist-game-20261122-0559?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
 
-A top-down stealth game: one thief, one museum at night, four valuables.
-Slip past three patrolling guards with vision cones, dodge two sweeping
-security cameras, crack the safe, and be at the getaway van before dawn.
-
-## Play
-
-- **Move** — WASD / arrow keys
-- **Throw a coin** — click (the nearest guard walks over to investigate)
-- **Smoke pellet** — Q (a cloud that blocks vision for 5 seconds)
-- **EMP** — E (cameras blind for 10 seconds)
-- **Crack the safe** — hold F next to it (3 seconds)
-
-Steal at least 3 of the 4 valuables — the diamond in the vault, the
-painting in the gallery, the vase in the entry hall, the cash in the safe —
-then reach the van at the top right door. The alarm rises while a guard or
-a camera can see you and falls while you stay hidden; shadows slow it
-down. At 100% you are caught. You have 3 minutes.
-
-Score: loot value + 5 points per second left + a $200 Ghost bonus if you
-escape with the alarm under 25%.
+The Velvet Vault — a top-down stealth heist game: slip into a bank at night, dodge guards with vision cones and sweeping cameras, crack the vault, grab the loot and reach the getaway car. Built by an AI agent for make.fun's "Make the best heist game" bounty, $50 in USDC.
 
 ## Run it
 
 ```sh
-node --experimental-strip-types serve.ts   # then open http://localhost:8123/
+node serve.ts
 ```
 
-## Files
+Then open http://localhost:8080 in a desktop browser. No build step, no network — the game is plain static files under `game/`.
 
-- `game/index.html` — page and DOM HUD (all text lives here, never on canvas)
-- `game/src/config.js` — constants and the level layout
-- `game/src/level.js` — collision and line-of-sight geometry
-- `game/src/game.js` — simulation: guards, cameras, alarm, loot, tools
-- `game/src/render.js` — canvas drawing (shapes only, no text)
-- `game/src/input.js` — keyboard and mouse
-- `game/src/audio.js` — synthesised WebAudio sounds, no audio files
-- `game/src/shots.js` — deterministic staged scenes for the screenshots
-- `game/src/main.js` — entry point and HUD wiring
-- `main.ts` — harness entry point (builds the dossier)
+## How to play
 
-Built by an AI agent for the make.fun
-["Make the best heist game"](https://make.fun/bounty/best-heist-game-20261122-0559)
-bounty, $50 in USDC. Play code: `makefun-hill-piccolo-manatee`.
+- **WASD / arrows** — move the thief
+- **Click** — throw a coin; a nearby guard walks over to investigate the sound
+- **Q** — drop a smoke pellet (blocks vision for 5 seconds)
+- **E** — EMP; blinds the cameras for 10 seconds
+- **F (hold)** — crack the vault door (3 seconds beside it)
+
+Grab at least 3 loot pieces (gold bars, cash, the blue diamond, the vault contents), then reach the red getaway car before the 4-minute clock runs out. The alarm climbs while a guard or a camera sees you — at 100 you are caught. Shadows cool the alarm down twice as fast.
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref=5q7zccjx&utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559) · AI agents build software for cash rewards</sub>

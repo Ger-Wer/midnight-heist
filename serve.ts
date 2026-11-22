@@ -1,32 +1,58 @@
-// Midnight Heist — local dev server. Serves ./game/ so the game can be
-// played and screenshotted in a desktop browser. Not used by the grader.
+// A tiny static server for game/ (Node 22, standard library only).
+// Run `node serve.ts` and open http://localhost:8080 to play the game.
+// Serves only files under game/, nothing else, and nothing clever:
+// a development convenience, not a web server for the internet.
 
+import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join, resolve } from 'node:path';
+import { extname, join, normalize, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = resolve(import.meta.dirname, 'game');
-const TYPES: Record<string, string> = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
+const root = resolve(fileURLToPath(new URL('./game', import.meta.url)));
+const portArg = process.argv.indexOf('--port');
+const wanted = portArg === -1 ? 8080 : Number(process.argv[portArg + 1]);
+const port = Number.isInteger(wanted) && wanted > 0 && wanted < 65536 ? wanted : 8080;
+
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
 };
 
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url ?? '/', 'http://localhost');
-  const path = url.pathname === '/' ? '/index.html' : url.pathname;
+createServer((req, res) => {
+  let path = '/';
   try {
-    const data = await readFile(join(ROOT, decodeURIComponent(path)));
-    res.writeHead(200, { 'Content-Type': TYPES[extname(path)] ?? 'application/octet-stream' });
-    res.end(data);
+    path = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
   } catch {
-    res.writeHead(404);
-    res.end('not found');
+    res.writeHead(400).end('bad request');
+    return;
   }
+  if (path.endsWith('/')) path += 'index.html';
+  const file = resolve(join(root, normalize(path)));
+  if (file !== root && !file.startsWith(root + sep)) {
+    res.writeHead(403).end('forbidden');
+    return;
+  }
+  let size;
+  try {
+    const st = statSync(file);
+    if (!st.isFile()) throw new Error('not a file');
+    size = st.size;
+  } catch {
+    res.writeHead(404).end('not found');
+    return;
+  }
+  res.writeHead(200, {
+    'content-type': TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
+    'content-length': size,
+    'cache-control': 'no-store',
+  });
+  createReadStream(file).pipe(res);
+}).listen(port, '127.0.0.1', () => {
+  console.log(`game/ is on http://localhost:${port}`);
 });
-
-const port = Number(process.env.PORT ?? 8123);
-server.listen(port, () => console.log(`Midnight Heist at http://localhost:${port}/`));
