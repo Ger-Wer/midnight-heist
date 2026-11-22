@@ -1,73 +1,115 @@
-// Midnight Heist — sound. Everything is synthesised with WebAudio:
-// no audio files, no network. A tiny helper plays short oscillator
-// blips; each game event picks its own little phrase.
+// audio.js: every sound is synthesized with WebAudio — no audio files.
+// A tiny synth: short blips for pickups, a low tick while the vault cracks,
+// a rising alarm pulse, and a win/lose jingle. Created lazily on the first
+// user gesture, so the browser's autoplay rules never block the game.
 
-export function createAudio() {
-  let ctx = null;
-  let alarmTickAt = 0;
+let ctx = null;
+let alarmOsc = null;
+let alarmGain = null;
 
-  function ensure() {
-    if (!ctx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
-      ctx = new AC();
-    }
+export function ensureAudio() {
+  if (ctx) {
     if (ctx.state === 'suspended') ctx.resume();
-    return ctx;
+    return;
   }
-
-  function tone(freq, dur, type, vol, when = 0, slideTo = null) {
-    const c = ensure();
-    if (!c) return;
-    const t0 = c.currentTime + when;
-    const osc = c.createOscillator();
-    const gain = c.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
-    gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(gain);
-    gain.connect(c.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.05);
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+  } catch {
+    ctx = null;
   }
+}
 
-  return {
-    unlock() {
-      ensure();
-    },
-    pickup() {
-      tone(660, 0.09, 'sine', 0.12);
-      tone(990, 0.14, 'sine', 0.12, 0.07);
-    },
-    coin() {
-      tone(1900, 0.05, 'square', 0.05);
-      tone(1500, 0.06, 'square', 0.04, 0.05);
-    },
-    smoke() {
-      tone(320, 0.25, 'sine', 0.08, 0, 120);
-    },
-    emp() {
-      tone(1200, 0.35, 'sawtooth', 0.07, 0, 90);
-    },
-    crackTick() {
-      tone(520, 0.04, 'square', 0.04);
-    },
-    caught() {
-      tone(440, 0.3, 'sawtooth', 0.1, 0, 110);
-      tone(220, 0.5, 'sawtooth', 0.1, 0.25, 55);
-    },
-    win() {
-      [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'sine', 0.11, i * 0.12));
-    },
-    // A soft metronome tick while the alarm is high, so tension is audible.
-    alarmTick(nowMs, alarm) {
-      if (alarm < 60) return;
-      if (nowMs - alarmTickAt < 500) return;
-      alarmTickAt = nowMs;
-      tone(880, 0.06, 'square', alarm > 85 ? 0.09 : 0.05);
-    },
-  };
+function tone(freq, seconds, type, volume, when = 0) {
+  if (!ctx) return;
+  const t = ctx.currentTime + when;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(volume, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + seconds + 0.05);
+}
+
+export function playPickup() {
+  tone(880, 0.12, 'sine', 0.18);
+  tone(1318, 0.16, 'sine', 0.14, 0.07);
+}
+
+export function playCoin() {
+  tone(1568, 0.08, 'triangle', 0.12);
+}
+
+export function playSmoke() {
+  tone(220, 0.35, 'sawtooth', 0.06);
+  tone(180, 0.4, 'sawtooth', 0.05, 0.08);
+}
+
+export function playEmp() {
+  tone(1200, 0.3, 'square', 0.05);
+  tone(300, 0.45, 'square', 0.06, 0.1);
+}
+
+export function playCrackTick() {
+  tone(2400, 0.05, 'square', 0.07);
+}
+
+export function playVaultOpen() {
+  tone(523, 0.18, 'sine', 0.16);
+  tone(659, 0.18, 'sine', 0.16, 0.12);
+  tone(784, 0.3, 'sine', 0.16, 0.24);
+}
+
+export function playWin() {
+  [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, 'triangle', 0.16, i * 0.13));
+}
+
+export function playCaught() {
+  [392, 330, 262, 196].forEach((f, i) => tone(f, 0.3, 'sawtooth', 0.1, i * 0.16));
+}
+
+// The alarm pulse: a quiet two-tone loop whose speed follows the alarm
+// level. Started once, its rate is updated every frame; stopped on win/lose.
+export function setAlarmPulse(level) {
+  if (!ctx) return;
+  if (level <= 0.05) {
+    stopAlarmPulse();
+    return;
+  }
+  if (!alarmOsc) {
+    alarmOsc = ctx.createOscillator();
+    alarmGain = ctx.createGain();
+    alarmOsc.type = 'sine';
+    alarmOsc.frequency.value = 620;
+    alarmGain.gain.value = 0;
+    alarmOsc.connect(alarmGain);
+    alarmGain.connect(ctx.destination);
+    alarmOsc.start();
+  }
+  const speed = 1 + level * 7; // pulses per second
+  const t = ctx.currentTime;
+  alarmGain.gain.cancelScheduledValues(t);
+  alarmGain.gain.setValueAtTime(alarmGain.gain.value, t);
+  alarmGain.gain.linearRampToValueAtTime(0.05 + level * 0.05, t + 0.05);
+  alarmOsc.frequency.setValueAtTime(520 + level * 260, t);
+  void speed;
+}
+
+export function stopAlarmPulse() {
+  if (alarmOsc) {
+    try {
+      alarmOsc.stop();
+    } catch {
+      // already stopped
+    }
+    alarmOsc.disconnect();
+    alarmOsc = null;
+    alarmGain = null;
+  }
 }

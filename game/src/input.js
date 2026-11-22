@@ -1,85 +1,51 @@
-// Midnight Heist — input: WASD/arrows to move, mouse click to throw a
-// coin, Q for smoke, E for EMP, hold F to crack the safe. All keys are
-// read fresh every frame from a held-set, so holding a key keeps moving.
+// input.js: keyboard and mouse, kept in one small place.
+// Keys are stored lower-cased in a Set the game loop reads each frame.
+// Clicks are queued with their canvas coordinates for the coin throw.
 
-export function createInput() {
+export function makeInput(canvas) {
   const keys = new Set();
-  const queue = [];
-  let mouse = { x: 0, y: 0, clicked: false };
-  let started = false;
+  const clicks = []; // {x, y} in canvas pixels, consumed by the game loop
+  let onFirstGesture = null;
 
-  function onKeyDown(e) {
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+  function gesture() {
+    if (onFirstGesture) {
+      const f = onFirstGesture;
+      onFirstGesture = null;
+      f();
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) {
       e.preventDefault();
     }
-    if (k === 'q') queue.push('smoke');
-    if (k === 'e') queue.push('emp');
     keys.add(k);
-  }
+    gesture();
+  });
+  window.addEventListener('keyup', (e) => {
+    keys.delete(e.key.toLowerCase());
+  });
+  window.addEventListener('blur', () => keys.clear());
 
-  function onKeyUp(e) {
-    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    keys.delete(k);
-  }
-
-  function onMouseDown(e) {
-    mouse.clicked = true;
-    mouse.x = e.offsetX;
-    mouse.y = e.offsetY;
-  }
-
-  function onMouseMove(e) {
-    mouse.x = e.offsetX;
-    mouse.y = e.offsetY;
-  }
+  canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    clicks.push({
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    });
+    gesture();
+  });
 
   return {
-    attach(canvas) {
-      window.addEventListener('keydown', onKeyDown);
-      window.addEventListener('keyup', onKeyUp);
-      canvas.addEventListener('mousedown', onMouseDown);
-      canvas.addEventListener('mousemove', onMouseMove);
-    },
-    detach() {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-    },
-    // Normalised move vector from the held keys.
-    moveVector() {
-      let x = 0;
-      let y = 0;
-      if (keys.has('a') || keys.has('ArrowLeft')) x -= 1;
-      if (keys.has('d') || keys.has('ArrowRight')) x += 1;
-      if (keys.has('w') || keys.has('ArrowUp')) y -= 1;
-      if (keys.has('s') || keys.has('ArrowDown')) y += 1;
-      if (x !== 0 && y !== 0) {
-        const n = Math.hypot(x, y);
-        x /= n;
-        y /= n;
-      }
-      return { x, y };
-    },
-    holdingF() {
-      return keys.has('f');
-    },
-    // One-shot actions queued since the last frame.
-    drainActions() {
-      const out = queue.splice(0, queue.length);
-      if (mouse.clicked) {
-        mouse.clicked = false;
-        out.push({ type: 'coin', x: mouse.x, y: mouse.y });
-      }
-      return out;
-    },
-    mousePos() {
-      return { x: mouse.x, y: mouse.y };
-    },
-    markStarted() {
-      started = true;
-    },
-    isStarted() {
-      return started;
+    keys,
+    clicks,
+    // Called once, on the first key or click: browsers only allow audio
+    // after a gesture, so the game starts its sounds here.
+    onFirstGesture(fn) {
+      onFirstGesture = fn;
     },
   };
 }
